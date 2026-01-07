@@ -40,6 +40,9 @@ typedef struct s_data
 	int		len;
 	int		index;
 	double	zoom;
+	int		*color_lut;
+	double	re_factor;
+	double	im_factor;
 }	t_data;
 
 typedef struct s_complex
@@ -59,6 +62,7 @@ int		ft_create_img(t_data *data);
 int		ft_parse_cl(char **argv, int argc, t_data *data);
 int		ft_load_mlx(char **argv, int argc, t_data *data);
 int		ft_color(int i);
+void	ft_generate_colors(t_data *data);
 void	ft_init_data(t_data *data);
 int		ft_load_mlx(char **argv, int argc, t_data *data);
 int		ft_load_mlx(char **argv, int argc, t_data *data);

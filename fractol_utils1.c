@@ -18,6 +18,8 @@ int	ft_close(t_data *data, int status)
 		mlx_destroy_window(data->mlx, data->win);
 	if (data->img)
 		mlx_destroy_image(data->mlx, data->img);
+	if (data->color_lut)
+		free(data->color_lut);
 	if (data->mlx)
 	{
 		mlx_destroy_display(data->mlx);

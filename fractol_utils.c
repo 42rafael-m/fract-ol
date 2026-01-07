@@ -17,26 +17,28 @@ int	ft_mandelbrot(t_data *data, int x, int y)
 	int			i;
 	t_complex	c;
 	t_complex	z;
-	double		temp;
+	double		zr_sq;
+	double		zi_sq;
 
 	i = 0;
-	c.real = (x - (data->width >> 1)) / (data->zoom
-			* (data->width >> 1)) + data->center_r;
-	c.i = (y - (data->len >> 1)) / (data->zoom
-			* (data->len >> 1)) + data->center_i;
+	c.real = (x - (data->width >> 1)) * data->re_factor + data->center_r;
+	c.i = (y - (data->len >> 1)) * data->im_factor + data->center_i;
 	z.real = 0;
 	z.i = 0;
-	while (z.real * z.real + z.i * z.i <= 4 && i < data->index)
+	zr_sq = 0;
+	zi_sq = 0;
+	while (zr_sq + zi_sq <= 4 && i < data->index)
 	{
-		temp = z.real * z.real - z.i * z.i + c.real;
 		z.i = 2 * z.real * z.i + c.i;
-		z.real = temp;
+		z.real = zr_sq - zi_sq + c.real;
+		zr_sq = z.real * z.real;
+		zi_sq = z.i * z.i;
 		i++;
 	}
 	if (i == data->index)
 		my_mlx_pixel_put(data, x, y, 0x00000000);
 	else
-		my_mlx_pixel_put(data, x, y, ft_color(i));
+		my_mlx_pixel_put(data, x, y, data->color_lut[i]);
 	return (0);
 }
 
@@ -47,11 +49,14 @@ int	ft_create_img(t_data *data)
 
 	if (!data)
 		return (1);
-	x = 0;
-	while (x < data->width)
+	if (data->set != 0 && data->set != 1 && data->set != 2)
+		return (1);
+	data->re_factor = 1.0 / (data->zoom * (data->width >> 1));
+	data->im_factor = 1.0 / (data->zoom * (data->len >> 1));
+	#pragma omp parallel for private(x, y)
+	for (x = 0; x < data->width; x++)
 	{
-		y = 0;
-		while (y < data->len)
+		for (y = 0; y < data->len; y++)
 		{
 			if (data->set == 0)
 				ft_mandelbrot(data, x, y);
@@ -59,11 +64,7 @@ int	ft_create_img(t_data *data)
 				ft_julia1(x, y, data);
 			else if (data->set == 2)
 				ft_julia2(x, y, data);
-			else
-				return (1);
-			y++;
 		}
-		x++;
 	}
 	return (0);
 }
@@ -141,4 +142,7 @@ void	ft_init_data(t_data *data)
 	data->len = 500;
 	data->index = 100;
 	data->zoom = 1.0;
+	data->color_lut = NULL;
+	data->re_factor = 0;
+	data->im_factor = 0;
 }

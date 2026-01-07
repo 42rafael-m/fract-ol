@@ -22,10 +22,8 @@ int	ft_zoom(int button, int x, int y, t_data *data)
 
 	if (!data)
 		return (1);
-	mouse_r = data->center_r - (x - (data->width >> 1))
-		/ (data->zoom * (data->width >> 1));
-	mouse_i = data->center_i - (y - (data->len >> 1))
-		/ (data->zoom * (data->len >> 1));
+	mouse_r = data->center_r - (x - (data->width >> 1)) * data->re_factor;
+	mouse_i = data->center_i - (y - (data->len >> 1)) * data->im_factor;
 	prev_zoom = data->zoom;
 	if (button == 4)
 		data->zoom *= 1.1;
@@ -52,61 +50,78 @@ int	ft_julia2(int x, int y, t_data *data)
 	if (!data)
 		return (1);
 	i = 0;
-	z.real = (x - (data->width >> 1)) / (data->zoom
-			* (data->width >> 1)) + data->center_r;
-	z.i = (y - (data->len >> 1))
-		/ (data->zoom * (data->len >> 1)) + data->center_i;
+	z.real = (x - (data->width >> 1)) * data->re_factor + data->center_r;
+	z.i = (y - (data->len >> 1)) * data->im_factor + data->center_i;
 	while (z.real * z.real + z.i * z.i <= 4 && i < data->index)
 	{
-		temp = pow(z.real, 3) - 3 * z.real * pow(z.i, 2) + 0.400;
-		z.i = 3 * pow(z.real, 2) * z.i - pow(z.i, 3);
+		temp = (z.real * z.real * z.real) - 3 * z.real * (z.i * z.i) + 0.400;
+		z.i = 3 * (z.real * z.real) * z.i - (z.i * z.i * z.i);
 		z.real = temp;
 		i++;
 	}
 	if (i == data->index)
 		my_mlx_pixel_put(data, x, y, 0x00000000);
 	else
-		my_mlx_pixel_put(data, x, y, ft_color(i));
+		my_mlx_pixel_put(data, x, y, data->color_lut[i]);
 	return (0);
 }
 
 int	ft_julia1(int x, int y, t_data *data)
 {
 	t_complex	z;
-	double		temp;
+	double		zr_sq;
+	double		zi_sq;
 	int			i;
 
 	if (!data)
 		return (1);
 	i = 0;
-	z.real = (x - (data->width >> 1)) / (data->zoom
-			* (data->width >> 1)) + data->center_r;
-	z.i = (y - (data->len >> 1)) / (data->zoom
-			* (data->len >> 1)) + data->center_i;
-	while (z.real * z.real + z.i * z.i <= 4 && i < data->index)
+	z.real = (x - (data->width >> 1)) * data->re_factor + data->center_r;
+	z.i = (y - (data->len >> 1)) * data->im_factor + data->center_i;
+	zr_sq = z.real * z.real;
+	zi_sq = z.i * z.i;
+	while (zr_sq + zi_sq <= 4 && i < data->index)
 	{
-		temp = z.real * z.real - z.i * z.i + 0.279;
 		z.i = 2 * z.real * z.i;
-		z.real = temp;
+		z.real = zr_sq - zi_sq + 0.279;
+		zr_sq = z.real * z.real;
+		zi_sq = z.i * z.i;
 		i++;
 	}
 	if (i == data->index)
 		my_mlx_pixel_put(data, x, y, 0x00000000);
 	else
-		my_mlx_pixel_put(data, x, y, ft_color(i));
+		my_mlx_pixel_put(data, x, y, data->color_lut[i]);
 	return (0);
 }
 
-int	ft_color(int i)
+void	ft_generate_colors(t_data *data)
 {
+	int	i;
 	int	r;
 	int	g;
 	int	b;
 
-	r = sin(0.10 * i + 0) * 127 + 128;
-	g = sin(0.10 * i + 2) * 127 + 128;
-	b = sin(0.10 * i + 4) * 127 + 128;
-	return (r << 16 | g << 8 | b);
+	if (data->color_lut)
+		free(data->color_lut);
+	data->color_lut = malloc(sizeof(int) * data->index);
+	if (!data->color_lut)
+		ft_close(data, EXIT_FAILURE);
+	i = 0;
+	while (i < data->index)
+	{
+		r = sin(0.10 * i + 0) * 127 + 128;
+		g = sin(0.10 * i + 2) * 127 + 128;
+		b = sin(0.10 * i + 4) * 127 + 128;
+		data->color_lut[i] = (r << 16 | g << 8 | b);
+		i++;
+	}
+}
+
+int	ft_color(int i)
+{
+	(void)i;
+	return (0);
 }
 
 // int ft_color_smooth(int i, double z_abs, int max_iter)
@@ -140,6 +155,7 @@ int	main(int argc, char **argv)
 	data.mlx = mlx_init();
 	if (!data.mlx || ft_load_mlx(argv, argc, &data))
 		return (write(2, ERR_MSSG, 70), ft_close(&data, EXIT_FAILURE), 1);
+	ft_generate_colors(&data);
 	data.win = mlx_new_window(data.mlx, data.width, data.len, "FRACTOL");
 	if (!data.win)
 		return (write(2, ERR_MSSG, 70), ft_close(&data, EXIT_FAILURE), 1);
